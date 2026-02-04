@@ -67,171 +67,134 @@ analyze_and_plot_data <- function(original_data,
     # Set max time for plotting
     max_time <- ifelse(length(max_time) == 0, max(time_grid), max_time)
     
-    ### Smoothing proportions for categorical variables ###
-    if (is_cat) {
-      
-      if (cat_prop) {
-        
-        smoothed_proportions <- bind_rows(
-          compute_smoothed_proportions(orig_data, time_col, bandwidth, time_grid, "Original"),
-          compute_smoothed_proportions(synth_data, time_col, bandwidth, time_grid, "Synthetic")
-        )
-        
-        # Recode class labels
-        if(var_name != "Glascow coma scale total"){
-          
-          smoothed_proportions <- smoothed_proportions %>%
-            rowwise() %>%
-            mutate(
-              class = recode(class, !!!label_lookup[[var_name]])
-            ) %>%
-            ungroup()
-        }
-        
-        class_levels <- unique(smoothed_proportions$class)
-        
-        # Compute last time for each subject
-        subject_end_times <- combined_data %>%
-          group_by(`Subject ID`, data_type) %>%
-          summarise(last_time = max(Time), .groups = "drop")
-        
-        # Create a subject × time grid with data_type retained
-        subject_time_grid <- subject_end_times %>%
-          select(`Subject ID`, data_type, last_time) %>%
-          crossing(time = sort(unique(combined_data$Time))) %>%
-          filter(time <= last_time)
-        
-        # Count subjects at each time and data_type
-        subjects_remaining <- subject_time_grid %>%
-          group_by(time, data_type) %>%
-          summarise(subjects_in = n_distinct(`Subject ID`), .groups = "drop")
-        
-        # Normalize within each data_type
-        followup_curve <- subjects_remaining %>%
-          group_by(data_type) %>%
-          mutate(prop_remaining = subjects_in / max(subjects_in)) %>%
-          ungroup()
-        
-        # Global color mapping
-        color_map <- setNames(base_colors[1:length(class_levels)], class_levels)
-        
-        # Proportions plot
-        proportions_plot <- ggplot(smoothed_proportions, aes(x = time, y = smoothed_proportion, fill = class)) +
-          geom_area(position = "stack", alpha = 0.8) +
-          scale_fill_manual(values = color_map, drop = FALSE) +
-          facet_wrap(~data_type) +
-          labs(
-            title = NULL,
-            x = NULL, y = "Proportion", fill = "Class"
-          ) +
-          scale_x_continuous(breaks = seq(0, max_time, by = x_interval), 
-                            limits = c(0, max_time), expand = c(0, 0)) +
-          scale_y_continuous(expand = c(0,0)) +
-          theme_minimal() +
-          theme_minimal() +
-          theme(
-            axis.title.y = element_text(margin = margin(r = 15), size = 12),
-            legend.position = "top",
-            legend.box = "horizontal",
-            legend.direction = "horizontal",
-            legend.title = element_text(size = 12),
-            legend.text = element_text(size = 12),
-            plot.margin = margin(5, 10, 5, 10),
-            strip.text = element_text(size = 12),
-            panel.spacing = unit(1, "lines")
-          ) +
-          guides(fill = guide_legend(nrow = 1))
-        
-        legend <- get_legend( proportions_plot)
-        plot_nolegend <-  proportions_plot + theme(legend.position = "none",
-                                                    plot.margin = margin(5, 10, 15, 10))
-        
-        x_breaks <- seq(0, max_time, by = x_interval)
-        x_limits <- range(x_breaks)
+### Smoothing proportions for categorical variables ###
+if (is_cat) {
 
-        # Follow-up plot
-        # Follow-up plot
-        followup_plot <- ggplot(followup_curve, aes(x = time, y = prop_remaining, color = data_type)) +
-          geom_line(size = 1) +
-          scale_x_continuous(breaks = x_breaks, limits = x_limits, expand = c(0, 0)) +
-          scale_y_continuous(
-            labels = scales::percent_format(accuracy = 1),
-            breaks = function(lims) {
-              span <- diff(lims)
-              step <- dplyr::case_when(
-                span <= 0.25 ~ 0.05,  # 5% if very tight range
-                span <= 0.5  ~ 0.10,  # 10%
-                span <= 0.75 ~ 0.20,  # 20%
-                TRUE         ~ 0.25   # 25% for wide ranges
-              )
-              lo <- floor(lims[1] / step) * step
-              hi <- ceiling(lims[2] / step) * step
-              seq(lo, hi, by = step)
-            },
-            expand = expansion(mult = c(0, 0.02))
-          ) +
-          scale_color_manual(values = c("Original" = base_colors[1], "Synthetic" = base_colors[2])) +
-          labs(y = "Subjects in follow-up (%)", x = "Time (hours)") +
-          facet_wrap(~ data_type, ncol = 2, scales = "free_y") +
-          theme_minimal() +
-          theme(
-            axis.title.y = element_text(margin = margin(r = 15), size = 12),
-            axis.title.x = element_text(size = 12),
-            strip.text = element_blank(),
-            legend.title = element_text(size = 12),
-            legend.text = element_text(size = 12),
-            legend.position = "none",
-            plot.margin = margin(0, 9, 0, 9),
-            panel.spacing = unit(1, "lines")
+  if (cat_prop) {
+
+    smoothed_proportions <- bind_rows(
+      compute_smoothed_proportions(orig_data, time_col, bandwidth, time_grid, "Original"),
+      compute_smoothed_proportions(synth_data, time_col, bandwidth, time_grid, "Synthetic")
+    )
+
+    # Recode class labels
+    if (var_name != "Glascow coma scale total") {
+
+      smoothed_proportions <- smoothed_proportions %>%
+        rowwise() %>%
+        mutate(
+          class = recode(class, !!!label_lookup[[var_name]])
+        ) %>%
+        ungroup()
+    }
+
+    class_levels <- unique(smoothed_proportions$class)
+
+    # Compute last time for each subject
+    subject_end_times <- combined_data %>%
+      group_by(`Subject ID`, data_type) %>%
+      summarise(last_time = max(Time), .groups = "drop")
+
+    # Create a subject × time grid with data_type retained
+    subject_time_grid <- subject_end_times %>%
+      select(`Subject ID`, data_type, last_time) %>%
+      crossing(time = sort(unique(combined_data$Time))) %>%
+      filter(time <= last_time)
+
+    # Count subjects at each time and data_type
+    subjects_remaining <- subject_time_grid %>%
+      group_by(time, data_type) %>%
+      summarise(subjects_in = n_distinct(`Subject ID`), .groups = "drop")
+
+    # Normalize within each data_type
+    followup_curve <- subjects_remaining %>%
+      group_by(data_type) %>%
+      mutate(prop_remaining = subjects_in / max(subjects_in)) %>%
+      ungroup()
+
+    # Global color mapping
+    color_map <- setNames(base_colors[1:length(class_levels)], class_levels)
+
+    # Proportions plot
+    proportions_plot <- ggplot(smoothed_proportions, aes(x = time, y = smoothed_proportion, fill = class)) +
+      geom_area(position = "stack", alpha = 0.8) +
+      scale_fill_manual(values = color_map, drop = FALSE,
+                        labels = stringr::str_to_sentence) +
+      facet_wrap(~data_type) +
+      labs(
+        title = NULL,
+        x = NULL, y = "Proportion", fill = "Class"
+      ) +
+      scale_x_continuous(breaks = seq(0, max_time, by = x_interval),
+                         limits = c(0, max_time), expand = c(0, 0)) +
+      scale_y_continuous(expand = c(0, 0)) +
+      theme_minimal(base_size = 18) +
+      theme(
+        axis.title.y = element_text(margin = margin(r = 15), vjust = 0.5),
+        legend.position = "top",
+        legend.box = "horizontal",
+        legend.direction = "horizontal",
+        legend.text  = element_text(size = 16),
+        strip.text = element_text(size = 16),
+        plot.margin = margin(5, 10, 5, 10),
+        panel.spacing = unit(1, "lines")
+      ) +
+      guides(fill = guide_legend(nrow = 1))
+
+    # legend <- get_legend(proportions_plot)
+    # plot_nolegend <- proportions_plot +
+    #   theme(
+    #     legend.position = "none",
+    #     plot.margin = margin(5, 10, 15, 10)
+    #   )
+
+    x_breaks <- seq(0, max_time, by = x_interval)
+    x_limits <- range(x_breaks)
+
+    # Follow-up plot
+    followup_plot <- ggplot(followup_curve, aes(x = time, y = prop_remaining, color = data_type)) +
+      geom_line(size = 1) +
+      scale_x_continuous(breaks = x_breaks, limits = x_limits, expand = c(0, 0)) +
+      scale_y_continuous(
+        labels = scales::percent_format(accuracy = 1),
+        breaks = function(lims) {
+          span <- diff(lims)
+          step <- dplyr::case_when(
+            span <= 0.25 ~ 0.05,  # 5% if very tight range
+            span <= 0.5  ~ 0.10,  # 10%
+            span <= 0.75 ~ 0.20,  # 20%
+            TRUE         ~ 0.25   # 25% for wide ranges
           )
-        
-        # Convert to grobs
-        base_grob <- ggplotGrob(plot_nolegend)
-        followup_grob <- ggplotGrob(followup_plot)
-        
-        # Remove right y-axis from follow-up plot (second facet)
-        axis_l_indices <- which(grepl("axis-l", followup_grob$layout$name))
-        right_y_axis_index <- axis_l_indices[1] # second facet's left axis
-        
-        followup_grob$grobs[[right_y_axis_index]] <- nullGrob()
-        followup_yaxis_pos <- followup_grob$layout[followup_grob$layout$name == followup_grob$layout$name[right_y_axis_index], ]
-        followup_grob$widths[followup_yaxis_pos$l] <- unit(0, "cm")
-        
-        # Find panel columns in base plot layout (where panels sit)
-        panel_cols <- base_grob$layout[base_grob$layout$name == "panel-1-1", "l"]
-        
-        # All widths to left of panel are axis + labels
-        yaxis_widths_base <- base_grob$widths[1:(panel_cols - 1)]
-        
-        # Similarly for follow-up plot, find the panel column
-        panel_cols_followup <- followup_grob$layout[followup_grob$layout$name == "panel-1-1", "l"]
-        
-        # Replace the widths left of panel in follow-up with those from base plot
-        followup_grob$widths[1:(panel_cols_followup - 1)] <- yaxis_widths_base
-        
-        # Align x-axis tick label widths between base and follow-up
-        
-        base_x_axis_indices <- which(base_grob$layout$name %in% c("axis-b-1-1", "axis-b-2-1"))
-        followup_x_axis_indices <- which(followup_grob$layout$name %in% c("axis-b-1-1", "axis-b-2-1"))
-        
-        for (i in seq_along(base_x_axis_indices)) {
-          base_axis_grob <- base_grob$grobs[[base_x_axis_indices[i]]]
-          followup_axis_grob <- followup_grob$grobs[[followup_x_axis_indices[i]]]
-          
-          followup_axis_grob$widths <- base_axis_grob$widths
-          
-          followup_grob$grobs[[followup_x_axis_indices[i]]] <- followup_axis_grob
-        }
-        
-        # Combine the plots using patchwork
-        final_proportions_plot <- proportions_plot / followup_grob  +
-          plot_layout(heights = c(10, 2.5)) +
-          plot_annotation(theme = theme(plot.margin = margin(10, 10, 10, 10)))
+          lo <- floor(lims[1] / step) * step
+          hi <- ceiling(lims[2] / step) * step
+          seq(lo, hi, by = step)
+        },
+        expand = expansion(mult = c(0, 0.02))
+      ) +
+      scale_color_manual(values = c("Original" = base_colors[1], "Synthetic" = base_colors[2])) +
+      labs(y = "Subjects in\nfollow-up (%)", x = "Time (hours)") +
+      facet_grid(~data_type, scales = "free_y") +
+      theme_minimal(base_size = 18) +
+      theme(
+        axis.title.y = element_text(margin = margin(r = 15), lineheight = 0.95),
+        strip.text = element_blank(),
+        legend.position = "none",
+        plot.margin = margin(0, 9, 5, 9),
+        panel.spacing = unit(1, "lines")
+      ) +
+      coord_cartesian(clip = "off")
+
+    # Combine the plots using patchwork
+   final_proportions_plot <-
+      proportions_plot /
+      plot_spacer() /
+      followup_plot +
+      plot_layout(heights = c(10, 0.6, 3.2)) 
         
         # Save or display
         if (!is.null(save_path)) {
           ggsave(file.path(save_path_var, paste0("proportions_", var_name, ".pdf")), 
-                 final_proportions_plot, width = 16.54, height = 8.8, units = "in", dpi = 600)
+                 final_proportions_plot, width = 18.194, height = 9.68, units = "in", dpi = 600)
         } else {
           print(proportions_plot)
         }
@@ -324,20 +287,19 @@ analyze_and_plot_data <- function(original_data,
             scale_fill_manual(
               values = color_map,
               drop = FALSE,
-              breaks = levels(smoothed_proportions$class)) +
+              breaks = levels(smoothed_proportions$class),
+              labels = stringr::str_to_sentence) +
             scale_x_continuous(breaks = seq(0, max_time, by = x_interval), 
                                limits = c(0, max_time), expand = c(0, 0)) +
             scale_y_continuous(expand = c(0,0)) +
-            theme_minimal() +
+            theme_minimal(base_size = 18) +
             theme(
-              axis.title.y = element_text(margin = margin(r = 15), size = 12),
-              axis.title.x = element_text(size = 12),
+              axis.title.y = element_text(margin = margin(r = 15)),
               legend.position = "top",
               legend.box = "horizontal",
               legend.direction = "horizontal",
-              strip.text = element_text(size = 12),
-              legend.title = element_text(size = 12),
-              legend.text = element_text(size = 12),
+              legend.text  = element_text(size = 16),
+              strip.text = element_text(size = 16),
               plot.margin = margin(5, 10, 5, 10),
               panel.spacing = unit(1, "lines")
             ) +
@@ -346,7 +308,7 @@ analyze_and_plot_data <- function(original_data,
           if (!is.null(save_path)) {
             safe_name <- gsub("[^A-Za-z0-9]", "_", f)
             ggsave(file.path(save_path_var, paste0("trans_plot__", var_name, "_from_", safe_name, ".pdf")),
-                   trans_plot, width = 16.54, height = 8.8, units = "in", dpi = 600)
+                   trans_plot, width = 18.194, height = 9.68, units = "in", dpi = 600)
           } else {
             print(trans_plot)
           }
@@ -439,10 +401,17 @@ analyze_and_plot_data <- function(original_data,
       # Mean and Quantiles Plot
       mean_quantile_plot <- ggplot() +
         geom_line(data = plot_data_long,
-                  aes(x = time, y = value, color = statistic),
+                  aes(x = time, y = value, color = statistic, 
+                      linetype = statistic),
                   size = 1.2) +
         facet_wrap(~data_type) +
         scale_color_manual(values = base_colors_sub[names(base_colors_sub) %in% unique(plot_data_long$statistic)]) +
+        scale_linetype_manual(
+          values = setNames(
+            ifelse(names(base_colors_sub) == "Mean", "dashed", "solid"),
+            names(base_colors_sub)
+          )
+        ) +
         labs(
           title = NULL, x = "Time", y = var_name, color = "Statistic"
         ) +
@@ -450,20 +419,19 @@ analyze_and_plot_data <- function(original_data,
                            limits = c(0, max_time), expand = c(0, 0)) +
         scale_y_continuous(breaks = y_breaks, limits = y_limits,
                            expand = expansion(mult = c(0, 0.07))) +
-        theme_minimal()+
+        theme_minimal(base_size = 18)+
         theme(
           axis.title.x = element_blank(),
-          axis.title.y = element_text(margin = margin(r = 15), size = 12),
-          strip.text = element_text(size = 12),
+          axis.title.y = element_text(margin = margin(r = 15), vjust = 0.5),
           legend.position = "top",
           legend.box = "horizontal",
           legend.direction = "horizontal",
-          legend.title = element_text(size = 12),
-          legend.text = element_text(size = 12),
-          plot.margin = margin(5, 10, 5, 10),
+          legend.text  = element_text(size = 16),
+          strip.text = element_text(size = 16),
+          plot.margin = margin(5, 10, 10, 10),
           panel.spacing = unit(1, "lines")
         ) +
-        guides(color = guide_legend(nrow = 1))
+        guides(color = guide_legend(nrow = 1), linetype = "none")
       
       legend <- get_legend(mean_quantile_plot)
       plot_nolegend <- mean_quantile_plot + theme(legend.position = "none",
@@ -493,62 +461,25 @@ analyze_and_plot_data <- function(original_data,
           expand = expansion(mult = c(0, 0.02))
         ) +
         scale_color_manual(values = c("Original" = base_colors[1], "Synthetic" = base_colors[2])) +
-        labs(y = "Subjects in follow-up (%)", x = "Time (hours)") +
-        facet_wrap(~ data_type, ncol = 2, scales = "free_y") +
-        theme_minimal() +
+        labs(y  = "Subjects in\nfollow-up (%)", x = "Time (hours)") +
+        facet_grid(~ data_type) +
+        theme_minimal(base_size = 18) +
         theme(
-          axis.title.y = element_text(margin = margin(r = 15), size = 12),
-          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(margin = margin(r = 15), lineheight = 0.95),
           strip.text = element_blank(),
-          legend.title = element_text(size = 12),
-          legend.text = element_text(size = 12),
           legend.position = "none",
           plot.margin = margin(0, 9, 5, 9),
           panel.spacing = unit(1, "lines")
-        )
-      
-      # Convert to grobs
-      base_grob <- ggplotGrob(plot_nolegend)
-      followup_grob <- ggplotGrob(followup_plot)
-      
-      # Remove right y-axis from follow-up plot (second facet)
-      axis_l_indices <- which(grepl("axis-l", followup_grob$layout$name))
-      right_y_axis_index <- axis_l_indices[1] # second facet's left axis
-      
-      followup_grob$grobs[[right_y_axis_index]] <- nullGrob()
-      followup_yaxis_pos <- followup_grob$layout[followup_grob$layout$name == followup_grob$layout$name[right_y_axis_index], ]
-      followup_grob$widths[followup_yaxis_pos$l] <- unit(0, "cm")
-      
-      # Find panel columns in base plot layout (where panels sit)
-      panel_cols <- base_grob$layout[base_grob$layout$name == "panel-1-1", "l"]
-      
-      # All widths to left of panel are axis + labels
-      yaxis_widths_base <- base_grob$widths[1:(panel_cols - 1)]
-      
-      # Similarly for follow-up plot, find the panel column
-      panel_cols_followup <- followup_grob$layout[followup_grob$layout$name == "panel-1-1", "l"]
-      
-      # Replace the widths left of panel in follow-up with those from base plot
-      followup_grob$widths[1:(panel_cols_followup - 1)] <- yaxis_widths_base
-      
-      # Align x-axis tick label widths between base and follow-up
-      
-      base_x_axis_indices <- which(base_grob$layout$name %in% c("axis-b-1-1", "axis-b-2-1"))
-      followup_x_axis_indices <- which(followup_grob$layout$name %in% c("axis-b-1-1", "axis-b-2-1"))
-      
-      for (i in seq_along(base_x_axis_indices)) {
-        base_axis_grob <- base_grob$grobs[[base_x_axis_indices[i]]]
-        followup_axis_grob <- followup_grob$grobs[[followup_x_axis_indices[i]]]
-        
-        followup_axis_grob$widths <- base_axis_grob$widths
-        
-        followup_grob$grobs[[followup_x_axis_indices[i]]] <- followup_axis_grob
-      }
+        ) +
+        coord_cartesian(clip = "off")
       
       # Combine the plots using patchwork
-      final_mean_quantile_plot <- mean_quantile_plot / followup_grob  +
-        plot_layout(heights = c(10, 2.5)) +
-        plot_annotation(theme = theme(plot.margin = margin(10, 10, 10, 10)))
+      final_mean_quantile_plot <- 
+        mean_quantile_plot /
+        plot_spacer() /
+        followup_plot +
+        plot_layout(heights = c(10, 0.6, 3.2)) 
+      
       
       # With outliers
       y_breaks <- scales::pretty_breaks(n = 6)(range(combined_with_bounds$value))
@@ -560,10 +491,16 @@ analyze_and_plot_data <- function(original_data,
                    aes(x = time, y = value),
                    color = "gray80", alpha = 0.6, size = 0.6) +
         geom_line(data = plot_data_long,
-                  aes(x = time, y = value, color = statistic),
+                  aes(x = time, y = value, color = statistic, linetype = statistic),
                   size = 1.2) +
         facet_wrap(~data_type) +
         scale_color_manual(values = base_colors_sub[names(base_colors_sub) %in% unique(plot_data_long$statistic)]) +
+        scale_linetype_manual(
+          values = setNames(
+            ifelse(names(base_colors_sub) == "Mean", "dashed", "solid"),
+            names(base_colors_sub)
+          )
+        ) +
         labs(
           title = NULL, x = "Time (hours)", y = var_name, color = "Statistic"
         ) +
@@ -571,20 +508,19 @@ analyze_and_plot_data <- function(original_data,
                            limits = c(0, max_time), expand = c(0, 0)) +
         scale_y_continuous(breaks = y_breaks, limits = y_limits,
                            expand = expansion(mult = c(0, 0.07))) +
-        theme_minimal()+
+        theme_minimal(base_size = 18)+
         theme(
           axis.title.x = element_blank(),
-          axis.title.y = element_text(margin = margin(r = 15), size = 12),
-          strip.text = element_text(size = 12),
+          axis.title.y = element_text(margin = margin(r = 15)),
           legend.position = "top",
           legend.box = "horizontal",
           legend.direction = "horizontal",
-          legend.title = element_text(size = 12),
-          legend.text = element_text(size = 12),
+          legend.text  = element_text(size = 16),
+          strip.text = element_text(size = 16),
           plot.margin = margin(5, 10, 5, 10),
           panel.spacing = unit(1, "lines")
         ) +
-        guides(color = guide_legend(nrow = 1))
+        guides(color = guide_legend(nrow = 1), linetype = "none")
       
       # Residuals
       residual_orig <- compute_residuals(orig_data, var_name, id_col, time_col, bandwidth , time_grid, "Original")
@@ -618,19 +554,20 @@ analyze_and_plot_data <- function(original_data,
         geom_line(linewidth = 1.2) +
         facet_wrap(~data_type) +
         labs(
-          title = NULL, x = "Time (hours) / lag", y = "Value", color = "Statistic"
+          title = NULL,
+          x = "Time (hours) / lag",
+          y = bquote(.(var_name)^2),
+          color = "Statistic"
         ) +
         scale_x_continuous(breaks = seq(0, max_time, by = x_interval), limits = c(0, max_time)) +
         scale_y_continuous(breaks = y_breaks, limits = y_limits, expand = expansion(mult = c(0, 0.07))) +
         scale_color_manual(values = base_colors[1:2]) +
-        theme_minimal() +
+        theme_minimal(base_size = 18) +
         theme(
-          axis.title.x = element_text(size = 12),
-          axis.title.y = element_text(margin = margin(r = 15), size = 12),
-          strip.text = element_text(size = 12),
-          legend.title = element_text(size = 12),
-          legend.text = element_text(size = 12),
+          axis.title.y = element_text(margin = margin(r = 15), vjust = 0.5),
           legend.position = "top",
+          legend.text  = element_text(size = 16),
+          strip.text = element_text(size = 16),
           plot.margin = margin(5, 10, 5, 10),
           panel.spacing = unit(1, "lines")
         ) +
@@ -672,7 +609,7 @@ analyze_and_plot_data <- function(original_data,
           labs(title = NULL,
                x = "Data type",
                y = "Rank variability") +
-          theme_minimal() +
+          theme_minimal(base_size = 18) +
           scale_fill_manual(values = base_colors[1:2]) +
           scale_y_continuous(breaks = seq(-1,1,0.5), limits = c(-1,1), expand = c(0.01,0.01)) +
           theme(legend.position = "none")
@@ -692,14 +629,12 @@ analyze_and_plot_data <- function(original_data,
           labs(title = NULL,
                y = "Density",
                x = "Rank variability") +
-          theme_minimal() +
+          theme_minimal(base_size = 18) +
           scale_fill_manual(values = base_colors[1:2]) +
           scale_x_continuous(breaks = seq(-1,1,0.5), limits = c(-1,1), expand = c(0.01,0.01)) +
           scale_y_continuous(
           breaks = y_breaks, limits = c(0, ceiling(max_y))) +
-          theme(legend.position = "none",
-                axis.title.x = element_text(size = 12),
-                axis.title.y = element_text(size = 12))
+          theme(legend.position = "none")
 
         # Combine side by side
         rank_plot <- box_p + dens_p
@@ -765,12 +700,11 @@ analyze_and_plot_data <- function(original_data,
           limits = y_lims,
           expand = c(0, 0),
           breaks = y_breaks) +
-        theme_minimal() +
-        theme(axis.title.x = element_text(size = 12),
-              axis.title.y = element_text(margin = margin(r = 15), size = 12),
-              strip.text = element_text(size = 12),
+        theme_minimal(base_size = 18) +
+        theme(axis.title.y = element_text(margin = margin(r = 15)),
               legend.title = element_blank(),
-              legend.text = element_text(size = 12),
+              legend.text  = element_text(size = 16),
+              strip.text = element_text(size = 16),
               legend.position = "top")
       
       
@@ -783,38 +717,38 @@ analyze_and_plot_data <- function(original_data,
       }
       
       # Compute the statitics
-      
+
       frobenius_norms <- numeric(meas_iter)
       frobenius_norms_ref <- numeric(meas_iter)
-      
+
       similarity_scores <- numeric(meas_iter)
       similarity_scores_ref <- numeric(meas_iter)
-      
+
       kl_scores <- numeric(meas_iter)
       kl_scores_ref <- numeric(meas_iter)
-      
+
       for (i in seq_len(meas_iter)) {
-        
+
         M_orig <- M_orig_full[sample(1:nrow(M_orig_full), meas_n),]
         M_orig_ref <- M_orig_full[sample(1:nrow(M_orig_full), meas_n),]
         M_synth <- M_synth_full[sample(1:nrow(M_synth_full), meas_n),]
-        
+
         # Optimize and sort
         opt_order_ref <- opt_perm(M_orig, M_orig_ref)
         M_orig_ref_opt <- M_orig_ref[opt_order_ref,]
-        
+
         opt_order_synth <- opt_perm(M_orig, M_synth)
         M_synth_opt <- M_synth[opt_order_synth,]
-        
+
         frobenius_norms_ref[i] <- norm(M_orig - M_orig_ref_opt, type = "F")
         similarity_scores_ref[i] <- measurement_similarity(M_orig, M_orig_ref_opt)
         kl_scores_ref[i] <- dropout_divergence(M_orig, M_orig_ref_opt)
-        
+
         frobenius_norms[i] <- norm(M_orig - M_synth_opt, type = "F")
         similarity_scores[i] <- measurement_similarity(M_orig, M_synth_opt)
         kl_scores[i] <- dropout_divergence(M_orig, M_synth_opt)
       }
-      
+
       # Add mean row
       mean_row <- data.frame(
         Source = c("Reference", "Synthetic"),
@@ -822,14 +756,14 @@ analyze_and_plot_data <- function(original_data,
         SimilarityScore = c(mean(similarity_scores_ref, na.rm = TRUE), mean(similarity_scores, na.rm = TRUE)),
         DropoutDivergence = c(mean(kl_scores_ref, na.rm = TRUE), mean(kl_scores, na.rm = TRUE))
       )
-      
+
       # Write to CSV
       if(!is.null(save_path)){
-        write.csv(mean_row, 
-                  file = paste0(save_path_var, "meas_similarity_scores.csv"), 
+        write.csv(mean_row,
+                  file = paste0(save_path_var, "meas_similarity_scores.csv"),
                   row.names = FALSE)
       } else {
-        
+
         print(mean_row)
       }
       

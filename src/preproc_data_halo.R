@@ -119,14 +119,18 @@ synthetic_sub <- synthetic_sub %>%
 
 # Returning data depending on the settings selected in the beginning
 columns_full <- colnames(original_sub[,c(43,50,16,22:27,30,35,40,44,45,48,49)])
-columns_manuscript <- columns_full[c(1,2,4,5,12,13,15)]
+columns_manuscript <- columns_full[c(1,2,4:6,12,13,15)]
 
 if (full == TRUE) {
   original_data  <- original_sub[, columns_full]
   synthetic_data <- synthetic_sub[, columns_full]
 } else {
   original_data  <- original_sub[, columns_manuscript]
+  colnames(original_data)[6:8] <- paste0(colnames(original_data)[6:8],
+                                         c(" (bpm)", " (mmHg)", " (kg)"))
   synthetic_data <- synthetic_sub[, columns_manuscript]
+  colnames(synthetic_data)[6:8] <- paste0(colnames(synthetic_data)[6:8],
+                                         c(" (bpm)", " (mmHg)", " (kg)"))
 }
 
 export <- list(

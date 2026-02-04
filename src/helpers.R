@@ -423,16 +423,14 @@ plot_subject_specific_baselines <- function(rank_data, n_per_group = 10, n_group
     geom_point(size = 0.7, alpha = 0.85) +
     facet_grid(data_type ~ baseline_rank) +
     labs(
-      x = "Time", y = "Value", color = "Subject"
+      x = "Time", y = unique(plot_data$variable), color = "Subject"
     ) +
-    theme_minimal() +
+    theme_minimal(base_size = 18) +
     scale_color_manual(values = hue_pal()(n_per_group)) +  # Only need 20 colors
     scale_x_continuous(breaks = seq(0, max_time, by = x_interval), limits = c(0,max_time)) +
     theme(
-      strip.text = element_text(size = 12),
       legend.position = "none",
-      axis.title.x = element_text(size = 12),
-      axis.title.y = element_text(size = 12)
+      strip.text = element_text(size = 16),
     )
   
 }
