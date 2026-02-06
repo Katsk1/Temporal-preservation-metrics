@@ -41,6 +41,47 @@ fix_common_typos <- function(vec) {
   }, USE.NAMES = FALSE)
 }
 
+# ---- GCS label definitions ----
+eye_labels <- c(
+  "no response"   = "No eye opening",
+  "spontaneously" = "Spontaneous eye opening",
+  "to speech"     = "Eye opening to verbal command",
+  "to pain"       = "Eye opening to pain"
+)
+
+verbal_labels <- c(
+  "oriented"                = "Alert and oriented",
+  "confused"                = "Confused",
+  "inappropriate words"     = "Inappropriate words",
+  "incomprehensible sounds" = "Incomprehensible sounds",
+  "no response"             = "No verbal response"
+)
+
+motor_labels <- c(
+  "obeys commands"     = "Obeys commands",
+  "localizes pain"     = "Localizes pain",
+  "flex-withdraws"     = "Withdraws from pain",
+  "abnormal flexion"   = "Abnormal flexion",
+  "abnormal extension" = "Extension",
+  "no response"        = "No motor response"
+)
+
+label_lookup <- list(
+  "Glascow coma scale eye opening"     = eye_labels,
+  "Glascow coma scale verbal response" = verbal_labels,
+  "Glascow coma scale motor response"  = motor_labels
+)
+
+# Recode GCS labels in the wide datasets (original/synthetic)
+recode_gcs_labels <- function(df, label_lookup) {
+  for (var_name in names(label_lookup)) {
+    if (var_name %in% names(df)) {
+      df[[var_name]] <- dplyr::recode(as.character(df[[var_name]]), !!!label_lookup[[var_name]])
+    }
+  }
+  df
+}
+
 # The original data includes non-longitudinal data, i.e., only one observation per patient
 # removing these
 original <- original %>%
@@ -54,7 +95,8 @@ original <- original %>%
   mutate(Time = round(cumsum(`Time Since Last Visit`), 0)) %>%
   ungroup() %>%
   clean_class_labels() %>%
-  mutate(across(where(is.character), fix_common_typos))
+  mutate(across(where(is.character), fix_common_typos)) %>%
+  recode_gcs_labels(label_lookup)
 
 synthetic <- synthetic %>%
   group_by(`Subject ID`) %>%
@@ -63,7 +105,8 @@ synthetic <- synthetic %>%
   mutate(Time = round(cumsum(`Time Since Last Visit`), 0)) %>%
   ungroup() %>%
   clean_class_labels() %>%
-  mutate(across(where(is.character), fix_common_typos))
+  mutate(across(where(is.character), fix_common_typos)) %>%
+  recode_gcs_labels(label_lookup)
 
 
 # Compute last time for each subject

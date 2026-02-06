@@ -451,34 +451,11 @@ compute_relative_density <- function(M) {
   time_counts / total_counts
 }
 
-# Label definitions
-eye_labels <- c(
-  "no response"   = "No eye opening",
-  "spontaneously" = "Spontaneous eye opening",
-  "to speech"     = "Eye opening to verbal command",
-  "to pain"       = "Eye opening to pain"
-)
-
-verbal_labels <- c(
-  "oriented"               = "Alert and oriented",
-  "confused"               = "Confused",
-  "inappropriate words"    = "Inappropriate words",
-  "incomprehensible sounds"= "Incomprehensible sounds",
-  "no response"            = "No verbal response"
-)
-
-motor_labels <- c(
-  "obeys commands"     = "Obeys commands",
-  "localizes pain"     = "Localizes pain",
-  "flex-withdraws"     = "Withdraws from pain",
-  "abnormal flexion"   = "Abnormal flexion",
-  "abnormal extension" = "Extension",
-  "no response"        = "No motor response"
-)
-
-label_lookup <- list(
-  "Glascow coma scale eye opening"     = eye_labels,
-  "Glascow coma scale verbal response" = verbal_labels,
-  "Glascow coma scale motor response"  = motor_labels
-)
+# Convert variable names to filesystem-safe names
+make_var_safe <- function(var_name) {
+  var_stub <- sub("\\s*\\(.*\\)", "", var_name)      # remove units "(...)"
+  var_safe <- gsub("[^a-z0-9]+", "_", tolower(var_stub))  # replace non-alphanum with "_"
+  var_safe <- gsub("^_+|_+$", "", var_safe)          # trim leading/trailing "_"
+  var_safe
+}
 

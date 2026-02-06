@@ -32,7 +32,7 @@ demo2 <- demo[!(demo$`Subject ID` %in% sampled_ids), ]
 start_time <- Sys.time()
 
 # In the current implementation, the id column is expected to be "Subject ID"
-# and the analysis work only for id, time and time varying variables
+# and the analysis works only for id, time and time varying variables
 analyze_and_plot_data(
   original = demo1[, c("Subject ID", "Time", "Response")],
   synthetic = demo2[, c("Subject ID", "Time", "Response")],

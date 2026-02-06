@@ -1,4 +1,11 @@
-# Load necessary libraries
+#####################################################
+### The main analysis pipeline used in the paper  ###
+### Authors: Katariina Perkonoja, Parisa Movahedi ###
+### Date: 2026-02-09                              ###
+#####################################################
+
+### Load necessary libraries ###
+
 library(readr)
 library(dplyr)
 library(tidyr)
@@ -13,21 +20,23 @@ library(reshape2)
 library(data.table)
 library(RcppHungarian)
 
+### Source helper and analysis pipeline functions ###
+
 source("src/helpers.R")
 source("src/analyze_and_plot.R")
 
-# Bring only the data
+### HALO implementation ###
+
+# Import cleaned data
 tmp <- new.env(parent = .GlobalEnv)
 res <- sys.source("src/preproc_data_halo.R", envir = tmp) 
 wanted <- c("original_data", "synthetic_data") 
 list2env(mget(wanted, envir = tmp, inherits = FALSE), envir = .GlobalEnv)
 rm(tmp, res)
 
-### Running the metrics ###
+# Running the metrics
 
 start_time <- Sys.time()
-
-# Documentation in the respective .R file
 
 analyze_and_plot_data(
   original = original_data,
@@ -38,7 +47,7 @@ analyze_and_plot_data(
   x_interval = 12,
   bandwidth = 6,
   quantiles = c(0.05, 0.25, 0.5, 0.75, 0.95),
-  save_path = "final_results_48h/",  # Set to NULL to print to screen,
+  save_path = "results/halo/",
   mean_quantile = TRUE,
   cat_prop = TRUE,
   rank_stab = TRUE,
@@ -50,3 +59,6 @@ analyze_and_plot_data(
 end_time <- Sys.time()
 
 print(end_time - start_time)
+
+### Health Gym GAN implementation ###
+

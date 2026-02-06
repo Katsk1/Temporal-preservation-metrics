@@ -45,7 +45,9 @@ analyze_and_plot_data <- function(original_data,
   
   for (var_name in vars) {
     
-    save_path_var <- paste0(save_path,"/",gsub(" ", "_", tolower(var_name)), "/")
+    # Create file path for the results
+    var_safe <- make_var_safe(var_name)
+    save_path_var <- file.path(save_path, var_safe)
     dir.create(save_path_var, recursive = TRUE, showWarnings = FALSE)
     
     # Check if the variable is numeric or categorical
@@ -76,17 +78,6 @@ if (is_cat) {
       compute_smoothed_proportions(orig_data, time_col, bandwidth, time_grid, "Original"),
       compute_smoothed_proportions(synth_data, time_col, bandwidth, time_grid, "Synthetic")
     )
-
-    # Recode class labels
-    if (var_name != "Glascow coma scale total") {
-
-      smoothed_proportions <- smoothed_proportions %>%
-        rowwise() %>%
-        mutate(
-          class = recode(class, !!!label_lookup[[var_name]])
-        ) %>%
-        ungroup()
-    }
 
     class_levels <- unique(smoothed_proportions$class)
 
@@ -141,13 +132,6 @@ if (is_cat) {
       ) +
       guides(fill = guide_legend(nrow = 1))
 
-    # legend <- get_legend(proportions_plot)
-    # plot_nolegend <- proportions_plot +
-    #   theme(
-    #     legend.position = "none",
-    #     plot.margin = margin(5, 10, 15, 10)
-    #   )
-
     x_breaks <- seq(0, max_time, by = x_interval)
     x_limits <- range(x_breaks)
 
@@ -193,7 +177,7 @@ if (is_cat) {
         
         # Save or display
         if (!is.null(save_path)) {
-          ggsave(file.path(save_path_var, paste0("proportions_", var_name, ".pdf")), 
+          ggsave(file.path(save_path_var, paste0("proportions_", var_safe, ".pdf")), 
                  final_proportions_plot, width = 18.194, height = 9.68, units = "in", dpi = 600)
         } else {
           print(proportions_plot)
@@ -216,17 +200,6 @@ if (is_cat) {
         smooth_trans_all <- bind_rows(smooth_trans_orig, smooth_trans_synth)
         
         gc()
-        
-        # Recode 'from' and 'to'
-        if(var_name != "Glascow coma scale total"){
-          smooth_trans_all <- smooth_trans_all %>%
-            rowwise() %>%
-            mutate(
-              from = recode(from, !!!label_lookup[[var_name]]),
-              to   = recode(to,   !!!label_lookup[[var_name]])
-            ) %>%
-            ungroup()
-        }
         
         # Global list of all possible `to` states
         all_tos <- sort(unique(c(smooth_trans_all$from, smooth_trans_all$to)))
@@ -307,7 +280,7 @@ if (is_cat) {
           
           if (!is.null(save_path)) {
             safe_name <- gsub("[^A-Za-z0-9]", "_", f)
-            ggsave(file.path(save_path_var, paste0("trans_plot__", var_name, "_from_", safe_name, ".pdf")),
+            ggsave(file.path(save_path_var, paste0("trans_plot__", var_safe, "_from_", safe_name, ".pdf")),
                    trans_plot, width = 18.194, height = 9.68, units = "in", dpi = 600)
           } else {
             print(trans_plot)
@@ -536,7 +509,6 @@ if (is_cat) {
         mutate(statistic = "Variance")
       
       # Variogram
-      
       if(is.null(u_grid)){
         u_grid <- time_grid
       }
@@ -577,11 +549,11 @@ if (is_cat) {
 
         # Save or display
         if (!is.null(save_path)) {
-          ggsave(file.path(save_path_var, paste0("mean_quantiles_", tolower(var_name), ".pdf")), 
+          ggsave(file.path(save_path_var, paste0("mean_quantiles_", var_safe, ".pdf")), 
                  final_mean_quantile_plot, width = 8.27*1.5, height = 4.4*1.6, units = "in", dpi = 600)
-          ggsave(file.path(save_path_var, paste0("mean_quantiles_", tolower(var_name), "_outliers.pdf")), 
+          ggsave(file.path(save_path_var, paste0("mean_quantiles_", var_safe, "_outliers.pdf")), 
                  mean_quantile_plot_out, width = 8.27*1.5, height = 4.4*1.2, units = "in", dpi = 600)
-          ggsave(file.path(save_path_var, paste0("variogram_", tolower(var_name), ".pdf")), 
+          ggsave(file.path(save_path_var, paste0("variogram_", var_safe, ".pdf")), 
                  plot = vario_plot, width = 8.27*1.5, height = 4.4*1.2, units = "in", dpi = 600)
         } else {
           print(final_mean_quantile_plot)
@@ -644,9 +616,9 @@ if (is_cat) {
                                                       max_time, x_interval)
         
         if (!is.null(save_path)) {
-          ggsave(file.path(save_path_var, paste0("rank_order_", tolower(var_name), ".pdf")),
+          ggsave(file.path(save_path_var, paste0("rank_order_", var_safe, ".pdf")),
                  rank_plot, width = 8.27*1.5, height = 4.4*1.2, units = "in", dpi = 600)
-          ggsave(file.path(save_path_var, paste0("indiv_traject_", tolower(var_name),"_n",n_per_group, ".pdf")), 
+          ggsave(file.path(save_path_var, paste0("indiv_traject_", var_safe,"_n",n_per_group, ".pdf")), 
                  indiv_plot, width = 8.27*1.5, height = 4.4*1.2, units = "in", dpi = 600)
         } else {
           print(box_p)
@@ -710,7 +682,7 @@ if (is_cat) {
       
       # Save or print
       if (!is.null(save_path)) {
-        ggsave(file.path(save_path_var, paste0("real_meas_dens_", tolower(var_name), ".pdf")), 
+        ggsave(file.path(save_path_var, paste0("real_meas_dens_", var_safe, ".pdf")), 
                relat_meas, width = 8.27*1.5, height = 4.4*1.2, units = "in", dpi = 600)
       } else {
         print(relat_meas)
@@ -760,7 +732,7 @@ if (is_cat) {
       # Write to CSV
       if(!is.null(save_path)){
         write.csv(mean_row,
-                  file = paste0(save_path_var, "meas_similarity_scores.csv"),
+                  file = paste0(save_path_var, "/", var_safe, "_scores.csv"),
                   row.names = FALSE)
       } else {
 
