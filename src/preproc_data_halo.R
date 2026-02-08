@@ -126,9 +126,12 @@ subject_end_times <- subset(subject_end_times, last_time > 0)
 
 proportions(table(subject_end_times$last_time <= 48))
 
-# Subsetting data to include only observations at most 48 hours since admission
-original_sub <- subset(original, Time <= 48)
-synthetic_sub <- subset(synthetic, Time <= 48)
+# Subsetting data to include only observations at most 47 hours since admission
+original_sub <- subset(original, Time <= 47)
+original_sub$Time <- original_sub$Time + 1
+
+synthetic_sub <- subset(synthetic, Time <= 47)
+synthetic_sub$Time <- synthetic_sub$Time + 1
 
 # Drop rows where all columns except Subject ID and Time are NA
 original_sub <- original_sub %>%

@@ -68,6 +68,13 @@ analyze_and_plot_data <- function(original_data,
     
     # Set max time for plotting
     max_time <- ifelse(length(max_time) == 0, max(time_grid), max_time)
+    min_time <- min(time_grid)
+    
+    base_seq <- seq(ceiling(min_time / x_interval) * x_interval,
+                    max_time,
+                    by = x_interval)
+    
+    x_breaks <- if (min_time %% x_interval == 0) base_seq else c(min_time, base_seq)
     
 ### Smoothing proportions for categorical variables ###
 if (is_cat) {
@@ -116,8 +123,8 @@ if (is_cat) {
         title = NULL,
         x = NULL, y = "Proportion", fill = "Class"
       ) +
-      scale_x_continuous(breaks = seq(0, max_time, by = x_interval),
-                         limits = c(0, max_time), expand = c(0, 0)) +
+      scale_x_continuous(breaks = x_breaks,
+                         limits = c(min_time, max_time), expand = c(0, 0)) +
       scale_y_continuous(expand = c(0, 0)) +
       theme_minimal(base_size = 18) +
       theme(
@@ -125,20 +132,17 @@ if (is_cat) {
         legend.position = "top",
         legend.box = "horizontal",
         legend.direction = "horizontal",
-        legend.text  = element_text(size = 16),
-        strip.text = element_text(size = 16),
+        legend.text  = element_text(size = 16.5),
+        strip.text = element_text(size = 16.5),
         plot.margin = margin(5, 10, 5, 10),
         panel.spacing = unit(1, "lines")
       ) +
       guides(fill = guide_legend(nrow = 1))
 
-    x_breaks <- seq(0, max_time, by = x_interval)
-    x_limits <- range(x_breaks)
-
     # Follow-up plot
     followup_plot <- ggplot(followup_curve, aes(x = time, y = prop_remaining, color = data_type)) +
       geom_line(size = 1) +
-      scale_x_continuous(breaks = x_breaks, limits = x_limits, expand = c(0, 0)) +
+      scale_x_continuous(breaks = x_breaks, limits = c(min_time, max_time), expand = c(0, 0)) +
       scale_y_continuous(
         labels = scales::percent_format(accuracy = 1),
         breaks = function(lims) {
@@ -262,8 +266,8 @@ if (is_cat) {
               drop = FALSE,
               breaks = levels(smoothed_proportions$class),
               labels = stringr::str_to_sentence) +
-            scale_x_continuous(breaks = seq(0, max_time, by = x_interval), 
-                               limits = c(0, max_time), expand = c(0, 0)) +
+            scale_x_continuous(breaks = seq(min_time, max_time, by = x_interval), 
+                               limits = c(min_time, max_time), expand = c(0, 0)) +
             scale_y_continuous(expand = c(0,0)) +
             theme_minimal(base_size = 18) +
             theme(
@@ -271,8 +275,8 @@ if (is_cat) {
               legend.position = "top",
               legend.box = "horizontal",
               legend.direction = "horizontal",
-              legend.text  = element_text(size = 16),
-              strip.text = element_text(size = 16),
+              legend.text  = element_text(size = 16.5),
+              strip.text = element_text(size = 16.5),
               plot.margin = margin(5, 10, 5, 10),
               panel.spacing = unit(1, "lines")
             ) +
@@ -388,8 +392,8 @@ if (is_cat) {
         labs(
           title = NULL, x = "Time", y = var_name, color = "Statistic"
         ) +
-        scale_x_continuous(breaks = seq(0, max_time, by = x_interval), 
-                           limits = c(0, max_time), expand = c(0, 0)) +
+        scale_x_continuous(breaks = x_breaks, 
+                           limits = c(min_time, max_time), expand = c(0, 0)) +
         scale_y_continuous(breaks = y_breaks, limits = y_limits,
                            expand = expansion(mult = c(0, 0.07))) +
         theme_minimal(base_size = 18)+
@@ -410,13 +414,12 @@ if (is_cat) {
       plot_nolegend <- mean_quantile_plot + theme(legend.position = "none",
                                          plot.margin = margin(5, 10, 15, 10))
       
-      x_breaks <- seq(0, max_time, by = x_interval)
-      x_limits <- range(plot_data_long$time)
+
       
       # Follow-up plot
       followup_plot <- ggplot(followup_curve, aes(x = time, y = prop_remaining, color = data_type)) +
         geom_line(size = 1) +
-        scale_x_continuous(breaks = x_breaks, limits = x_limits, expand = c(0,0)) +
+        scale_x_continuous(breaks = x_breaks, limits = c(min_time, max_time) , expand = c(0,0)) +
         scale_y_continuous(
           labels = scales::percent_format(accuracy = 1),
           breaks = function(lims) {
@@ -477,8 +480,8 @@ if (is_cat) {
         labs(
           title = NULL, x = "Time (hours)", y = var_name, color = "Statistic"
         ) +
-        scale_x_continuous(breaks = seq(0, max_time, by = x_interval), 
-                           limits = c(0, max_time), expand = c(0, 0)) +
+        scale_x_continuous(breaks = x_breaks, 
+                           limits = c(min_time, max_time), expand = c(0, 0)) +
         scale_y_continuous(breaks = y_breaks, limits = y_limits,
                            expand = expansion(mult = c(0, 0.07))) +
         theme_minimal(base_size = 18)+
@@ -519,7 +522,7 @@ if (is_cat) {
       
       # Combine for plotting
       var_vario_df <- bind_rows(variance_df, variogram_df)
-      y_breaks <- scales::pretty_breaks(n = 8)(0:ceiling(max(var_vario_df$value)))
+      y_breaks <- scales::pretty_breaks(n = 8)(min_time:ceiling(max(var_vario_df$value)))
       y_limits <- range(y_breaks)
       
       vario_plot <- ggplot(var_vario_df, aes(x = time, y = value, color = statistic)) +
@@ -531,7 +534,7 @@ if (is_cat) {
           y = bquote(.(var_name)^2),
           color = "Statistic"
         ) +
-        scale_x_continuous(breaks = seq(0, max_time, by = x_interval), limits = c(0, max_time)) +
+        scale_x_continuous(breaks = x_breaks, limits = c(min_time, max_time)) +
         scale_y_continuous(breaks = y_breaks, limits = y_limits, expand = expansion(mult = c(0, 0.07))) +
         scale_color_manual(values = base_colors[1:2]) +
         theme_minimal(base_size = 18) +
@@ -667,7 +670,7 @@ if (is_cat) {
           y = "Proportion of total measurements"
         ) +
         scale_color_manual(values = base_colors[1:2]) +
-        scale_x_continuous(breaks = seq(0, max_time, by = x_interval), expand = c(0.01,0.01)) +
+        scale_x_continuous(breaks = x_breaks, expand = c(0.01,0.01)) +
         scale_y_continuous(
           limits = y_lims,
           expand = c(0, 0),
