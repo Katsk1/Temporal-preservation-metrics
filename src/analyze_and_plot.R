@@ -630,7 +630,7 @@ if (is_cat) {
       
       # Build dataframe for plotting
       density_df <- data.frame(
-        Time = seq_along(density_orig),
+        Time = seq(from = min_time, by = time_unit, length.out = length(density_orig)),
         Original = density_orig,
         Synthetic = density_synth
       ) |>
