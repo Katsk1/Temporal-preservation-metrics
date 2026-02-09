@@ -384,7 +384,7 @@ dropout_divergence <- function(M_orig, M_synth) {
 
 ### Helper: individual trajectories ###
 plot_subject_specific_baselines <- function(rank_data, n_per_group = 10, n_groups = 6, 
-                                            max_time, x_interval) {
+                                            min_time, max_time, x_breaks) {
   
   # Step 1: Find baseline time per subject
   subject_baseline <- rank_data %>%
@@ -423,11 +423,12 @@ plot_subject_specific_baselines <- function(rank_data, n_per_group = 10, n_group
     geom_point(size = 0.7, alpha = 0.85) +
     facet_grid(data_type ~ baseline_rank) +
     labs(
-      x = "Time", y = unique(plot_data$variable), color = "Subject"
+      x = "Time (hours)", y = unique(plot_data$variable), color = "Subject"
     ) +
     theme_minimal(base_size = 18) +
     scale_color_manual(values = hue_pal()(n_per_group)) +  # Only need 20 colors
-    scale_x_continuous(breaks = seq(0, max_time, by = x_interval), limits = c(0,max_time)) +
+    scale_x_continuous(breaks = x_breaks, limits = c(min_time,max_time), expand = c(0,0)) +
+    scale_y_continuous(expand = c(0,0)) +
     theme(
       legend.position = "none",
       strip.text = element_text(size = 16),

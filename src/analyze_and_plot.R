@@ -145,18 +145,7 @@ if (is_cat) {
       scale_x_continuous(breaks = x_breaks, limits = c(min_time, max_time), expand = c(0, 0)) +
       scale_y_continuous(
         labels = scales::percent_format(accuracy = 1),
-        breaks = function(lims) {
-          span <- diff(lims)
-          step <- dplyr::case_when(
-            span <= 0.25 ~ 0.05,  # 5% if very tight range
-            span <= 0.5  ~ 0.10,  # 10%
-            span <= 0.75 ~ 0.20,  # 20%
-            TRUE         ~ 0.25   # 25% for wide ranges
-          )
-          lo <- floor(lims[1] / step) * step
-          hi <- ceiling(lims[2] / step) * step
-          seq(lo, hi, by = step)
-        },
+        breaks = seq(0,1,0.25), limits = c(0,1),
         expand = expansion(mult = c(0, 0.02))
       ) +
       scale_color_manual(values = c("Original" = base_colors[1], "Synthetic" = base_colors[2])) +
@@ -266,7 +255,7 @@ if (is_cat) {
               drop = FALSE,
               breaks = levels(smoothed_proportions$class),
               labels = stringr::str_to_sentence) +
-            scale_x_continuous(breaks = seq(min_time, max_time, by = x_interval), 
+            scale_x_continuous(breaks = x_breaks, 
                                limits = c(min_time, max_time), expand = c(0, 0)) +
             scale_y_continuous(expand = c(0,0)) +
             theme_minimal(base_size = 18) +
@@ -422,18 +411,7 @@ if (is_cat) {
         scale_x_continuous(breaks = x_breaks, limits = c(min_time, max_time) , expand = c(0,0)) +
         scale_y_continuous(
           labels = scales::percent_format(accuracy = 1),
-          breaks = function(lims) {
-            span <- diff(lims)
-            step <- dplyr::case_when(
-              span <= 0.25 ~ 0.05,  # 5% if very tight range
-              span <= 0.5  ~ 0.10,  # 10%
-              span <= 0.75 ~ 0.20,  # 20%
-              TRUE         ~ 0.25   # 25% for wide ranges
-            )
-            lo <- floor(lims[1] / step) * step
-            hi <- ceiling(lims[2] / step) * step
-            seq(lo, hi, by = step)
-          },
+          breaks = seq(0,1,0.25), limits = c(0,1),
           expand = expansion(mult = c(0, 0.02))
         ) +
         scale_color_manual(values = c("Original" = base_colors[1], "Synthetic" = base_colors[2])) +
@@ -534,7 +512,7 @@ if (is_cat) {
           y = bquote(.(var_name)^2),
           color = "Statistic"
         ) +
-        scale_x_continuous(breaks = x_breaks, limits = c(min_time, max_time)) +
+        scale_x_continuous(breaks = x_breaks, limits = c(min_time, max_time), expand = c(0,0)) +
         scale_y_continuous(breaks = y_breaks, limits = y_limits, expand = expansion(mult = c(0, 0.07))) +
         scale_color_manual(values = base_colors[1:2]) +
         theme_minimal(base_size = 18) +
@@ -616,7 +594,7 @@ if (is_cat) {
         
         indiv_plot <- plot_subject_specific_baselines(rank_df, n_per_group, 
                                                       n_groups = length(quantiles)+1,
-                                                      max_time, x_interval)
+                                                      min_time, max_time, x_breaks)
         
         if (!is.null(save_path)) {
           ggsave(file.path(save_path_var, paste0("rank_order_", var_safe, ".pdf")),
@@ -649,7 +627,7 @@ if (is_cat) {
       
       # Build dataframe for plotting
       density_df <- data.frame(
-        Time = seq_along(density_orig)-1,
+        Time = seq_along(density_orig),
         Original = density_orig,
         Synthetic = density_synth
       ) |>
@@ -670,7 +648,8 @@ if (is_cat) {
           y = "Proportion of total measurements"
         ) +
         scale_color_manual(values = base_colors[1:2]) +
-        scale_x_continuous(breaks = x_breaks, expand = c(0.01,0.01)) +
+        scale_x_continuous(breaks = x_breaks, limits = c(min_time, max_time),
+                           expand = c(0,0)) +
         scale_y_continuous(
           limits = y_lims,
           expand = c(0, 0),
