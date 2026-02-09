@@ -432,6 +432,7 @@ plot_subject_specific_baselines <- function(rank_data, n_per_group = 10, n_group
     theme(
       legend.position = "none",
       strip.text = element_text(size = 16),
+      panel.spacing.x = unit(1.2, "lines")
     )
   
 }
