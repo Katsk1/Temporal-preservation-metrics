@@ -47,8 +47,11 @@ analyze_and_plot_data <- function(original_data,
     
     # Create file path for the results
     var_safe <- make_var_safe(var_name)
-    save_path_var <- file.path(save_path, var_safe)
-    dir.create(save_path_var, recursive = TRUE, showWarnings = FALSE)
+    
+    if(!is.null(save_path)){
+      save_path_var <- file.path(save_path, var_safe)
+      dir.create(save_path_var, recursive = TRUE, showWarnings = FALSE)
+    }
     
     # Check if the variable is numeric or categorical
     is_cat <- is_categorical(original_data[[var_name]])
